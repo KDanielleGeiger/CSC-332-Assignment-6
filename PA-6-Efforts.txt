@@ -1,0 +1,9 @@
+# How to run the program?
+Double-click the "PA-6-Executable.exe" file to run the program. The executable was created under Windows 10 using PyInstaller (Python 3 pre-3.7).
+
+# Group member contribution
+Robert Cox: 20% (Robert Cox)
+Alex Dudenhoeffer: 20% (Alex Dudenhoeffer)
+Kaitlyn Geiger: 20% (Kaitlyn Geiger)
+Steven Mauseth: 20% (Steven Mauseth)
+Dylan Spencer: 20% (Dylan Spencer)
