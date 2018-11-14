@@ -7,6 +7,7 @@ matchText = 'Enter match (Int)'
 mismatchText = 'Enter mismatch (Int)'
 gapText = 'Enter gap (Int)'
 allowedStrings = [seqText, matchText, mismatchText, gapText]
+errorLbl = None
 
 def main():
     window = Tk()
@@ -77,18 +78,62 @@ def checkEntries(seqEntry1, seqEntry2, match, mismatch, gap):
         valid = False
         err = 'ERROR: Sequences must be alphanumeric.'
     try:
-        int(match.get())
-        int(mismatch.get())
-        int(gap.get())
+        if int(match.get()) < 0:
+            valid = False
+            err = 'ERROR: Match must be an integer ≥ 0.'
+        elif int(mismatch.get()) > 0:
+            valid = False
+            err = 'ERROR: Mismatch must be an integer ≤ 0.'
+        elif int(gap.get()) > 0:
+            valid = False
+            err = 'ERROR: Gap must be an integer ≤ 0.'
     except:
         valid = False
         err = 'ERROR: Match, mismatch, and gap must be integers.'
 
     return valid, err
+
+def displayError(window, valid, err):
+    global errorLbl
+    
+    if errorLbl is not None:
+        errorLbl.destroy()
+
+    if valid == False:
+        errVar = StringVar()
+        errVar.set(err)
+
+        errorLbl = Label(window, textvariable=errVar, fg='red', wraplength=160)
+        errorLbl.grid(row=7, column=0, pady=(10,0))
+
+class Cell:
+    def __init__(self, value, pointsTo):
+        self.value = value
+        self.pointsTo = pointsTo
+
+    def __repr__(self):
+        return str(self.value)
+
+def initializeMatrix(seq1, seq2, gap):
+    matrix = [0] * (len(seq1) + 1)
+    for i in range (0, len(matrix)):
+        matrix[i] = [0] * (len(seq2) + 1)
+
+    matrix[0][0] = Cell(0, [])
+
+    for i in range(1, len(matrix)):
+        matrix[i][0] = Cell(matrix[i-1][0].value + gap, matrix[i-1][0])
+    for j in range(1, len(matrix[0])):
+        matrix[0][j] = Cell(matrix[0][j-1].value + gap, matrix[0][j-1])
+
+    return matrix
     
 def submit(window, seqEntry1, seqEntry2, match, mismatch, gap):
     valid, err = checkEntries(seqEntry1, seqEntry2, match, mismatch, gap)
-    print(valid, err)
+    displayError(window, valid, err)
+
+    if valid == True:
+        matrix = initializeMatrix(seqEntry1.get(), seqEntry2.get(), int(gap.get()))
 
 if __name__ == '__main__':
     main()
