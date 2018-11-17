@@ -138,67 +138,119 @@ def displayError(frameLeft, valid, err):
 ##  Value is the integer value of the cell
 ##  PointsTo is a list of Cells that the cell's value came from (the "arrows")
 class Cell:
-    def __init__(self, value, pointsTo):
+    def __init__(self, value, pointsTo, i, j):
         self.value = value
         self.pointsTo = pointsTo
+        self.i = i
+        self.j = j
 
-    def __repr__(self):
+    def __str__(self):
         return str(self.value)
 
-##  Initialize the first row and column of the matrix
-def initializeMatrix(seq1, seq2, gap):
-    ##  Create a blank matrix; Add one extra space to the length of the sequences
-    matrix = [0] * (len(seq1) + 1)
-    for i in range (0, len(matrix)):
-        matrix[i] = [0] * (len(seq2) + 1)
+    def __repr__(self):
+        return "Cell({}, {}, {}, {})".format(self.value, self.pointsTo, self.i, self.j)
 
-    ##  Set top-left cell's value to 0
-    matrix[0][0] = Cell(0, [])
+class Matrix(list):
 
-    ##  Fill first column and row
-    for i in range(1, len(matrix)):
-        matrix[i][0] = Cell(matrix[i-1][0].value + gap, matrix[i-1][0])
-    for j in range(1, len(matrix[0])):
-        matrix[0][j] = Cell(matrix[0][j-1].value + gap, matrix[0][j-1])
+    ##  Initialize the first row and column of the matrix
+    def __init__(self, seq1, seq2, gap):
 
-    return matrix
+        self.seq1 = seq1
+        self.seq2 = seq2
+        self.gap = gap
 
-##  Determine if two sequence characters match
-def same(i, j, seq1, seq2):
-    if seq1[i-1] == seq2[j-1]:
-        return True
-    return False
+        ##  Create a blank matrix; Add one extra space to the length of the sequences
+        self += [0] * (len(seq1) + 1)
+        for i in range(0, len(self)):
+            self[i] = [0] * (len(seq2) + 1)
+    
+        ##  Set top-left cell's value to 0
+        self[0][0] = Cell(0, [], 0, 0)
+    
+        ##  Fill first column and row
+        for i in range(1, len(self)):
+            self[i][0] = Cell(self[i-1][0].value + gap, [self[i-1][0]], i, 0)
+        for j in range(1, len(self[0])):
+            self[0][j] = Cell(self[0][j-1].value + gap, [self[0][j-1]], 0, j)
 
-##  Fill the matrix
-def fillMatrix(matrix, match, mismatch, gap, seq1, seq2):
-    for i in range(1, len(matrix)):
-        for j in range(1, len(matrix[0])):
-            ##  Calculate values from all 3 neighbors
-            s = same(i, j, seq1, seq2)
-            if s == True:
-                s = match
+    ##  Determine if two sequence characters match
+    def same(self, i, j):
+        if self.seq1[i-1] == self.seq2[j-1]:
+            return True
+        return False
+    
+    def getDiagonal(self, i, j):
+        try:
+            return self[i-1][j-1]
+        except IndexError:
+            return None
+    
+    def getAbove(self, i, j):
+        try:
+            return self[i][j-1]
+        except IndexError:
+            return None
+    
+    def getBeside(self, i, j):
+        try:
+            return self[i-1][j]
+        except IndexError:
+            return None
+
+    ##  Fill the matrix
+    def fill(self, match, mismatch):
+        for i in range(1, len(self)):
+            for j in range(1, len(self[0])):
+
+                ##  Calculate values from all 3 neighbors
+                s = self.same(i, j)
+                if s == True:
+                    s = match
+                else:
+                    s = mismatch
+                ##  Get values of possible predecessors
+                diagonalVal = self.getDiagonal(i, j).value + s
+                aboveVal = self.getAbove(i, j).value + self.gap
+                besideVal = self.getBeside(i, j).value + self.gap
+    
+                ##  Store values in array and calculate the max
+                previousVals= [diagonalVal, aboveVal, besideVal]
+                maxVal = max(previousVals)
+    
+                ##  Determine which neighbors produced the max values; Add to pointsTo
+                pointsTo = []
+                if previousVals[0] == maxVal:
+                    pointsTo.append(self[i-1][j-1])
+                if previousVals[1] == maxVal:
+                    pointsTo.append(self[i][j-1])
+                if previousVals[2] == maxVal:
+                    pointsTo.append(self[i-1][j])
+    
+                self[i][j] = Cell(maxVal, pointsTo, i, j)
+    
+    def traceBack(self):
+        ##  Get coordinates of lower righthand cell
+        i = len(self) - 1
+        j = len(self[0]) - 1
+        
+        ##  Enqueue a sequence containing only the starting cell
+        sequences = [[self[i][j]]]
+
+        ##  While there are possible solutions that aren't yet complete
+        while sequences:
+            ##  Dequeue something
+            currentSequence = sequences.pop(0)
+            first = currentSequence[0]
+            ##  If the first cell points to nothing, the sequence
+            ##  is complete. Yield it.
+            if not first.pointsTo:
+                yield currentSequence
+            ##  If the first cell points to earlier cells, create new
+            ##  sequences beginning with each earlier cell and ending with
+            ##  currentSequence. Enqueue these extended sequences.
             else:
-                s = mismatch
-            diagonal = matrix[i-1][j-1].value + s
-            above = matrix[i][j-1].value + gap
-            beside = matrix[i-1][j].value + gap
-
-            ##  Store values in array and calculate the max
-            array = [diagonal, above, beside]
-            value = max(array)
-
-            ##  Determine which neighbors produced the max values; Add to pointsTo
-            pointsTo = []
-            if array[0] == value:
-                pointsTo.append(matrix[i-1][j-1])
-            if array[1] == value:
-                pointsTo.append(matrix[i][j-1])
-            if array[2] == value:
-                pointsTo.append(matrix[i-1][j])
-
-            matrix[i][j] = Cell(value, pointsTo)
-
-    return matrix
+                for neighbor in first.pointsTo:
+                    sequences.append([neighbor] + currentSequence)
 
 ##  Create image of matrix and display it in the UI
 def createPlot(frameRight, matrix, seq1, seq2):
@@ -240,6 +292,21 @@ def createPlot(frameRight, matrix, seq1, seq2):
     canvas.get_tk_widget().grid(row=0, column=2, padx=(10,10), pady=(10,0))
     canvas.get_tk_widget().config(width=300, height=300)
 
+##  XXX: Temporary. Delete this.
+def printSolution(matrix, solution):
+    for x in solution:
+        try:
+            seq1Char = matrix.seq1[x.i - 1]
+        except IndexError:
+            seq1Char = None
+
+        try:
+            seq2Char = matrix.seq2[x.i - 1]
+        except IndexError:
+            seq2Char = None
+
+        print(seq1Char, seq2Char, 'at', (x.i, x.j))
+
 ##  Submit input and run the algorithm
 def submit(frameLeft, frameRight, seqEntry1, seqEntry2, match, mismatch, gap):
     ##  Check user input
@@ -248,10 +315,14 @@ def submit(frameLeft, frameRight, seqEntry1, seqEntry2, match, mismatch, gap):
 
     if valid == True:
         ##  Initialize and fill the matrix
-        matrix = initializeMatrix(seqEntry1.get(), seqEntry2.get(), int(gap.get()))
-        matrix = fillMatrix(matrix, int(match.get()), int(mismatch.get()),
-                            int(gap.get()), seqEntry1.get(), seqEntry2.get())
+        matrix = Matrix(seqEntry1.get(), seqEntry2.get(), int(gap.get()))
+        matrix.fill(int(match.get()), int(mismatch.get()))
         createPlot(frameRight, matrix, seqEntry1.get(), seqEntry2.get())
+
+    ## XXX: Delete this
+    for solution in matrix.traceBack():
+        printSolution(matrix, solution)
+        print()
 
 if __name__ == '__main__':
     main()
