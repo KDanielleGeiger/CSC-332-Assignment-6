@@ -233,21 +233,24 @@ class Matrix(list):
         i = len(self) - 1
         j = len(self[0]) - 1
         
-        paths = [[self[i][j]]]
+        ##  Enqueue a sequence containing only the starting cell
+        sequences = [[self[i][j]]]
 
         ##  While there are possible solutions that aren't yet complete
-        while paths:
+        while sequences:
             ##  Dequeue something
-            currentPath = paths.pop(0)
-            first = currentPath[0]
-            ##  If it points to nothing, it's complete. Yield it.
+            currentSequence = sequences.pop(0)
+            first = currentSequence[0]
+            ##  If the first cell points to nothing, the sequence
+            ##  is complete. Yield it.
             if not first.pointsTo:
-                yield currentPath
-            ##  If it points to something, prepend each of those cells
-            ##  to the current path, and enqueue each new path.
+                yield currentSequence
+            ##  If the first cell points to earlier cells, create new
+            ##  sequences beginning with each earlier cell and ending with
+            ##  currentSequence. Enqueue these extended sequences.
             else:
                 for neighbor in first.pointsTo:
-                    paths.append([neighbor] + currentPath)
+                    sequences.append([neighbor] + currentSequence)
 
 ##  Create image of matrix and display it in the UI
 def createPlot(frameRight, matrix, seq1, seq2):
