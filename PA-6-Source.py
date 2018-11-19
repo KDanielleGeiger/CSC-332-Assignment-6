@@ -3,6 +3,7 @@ from tkinter import *
 from functools import partial
 import matplotlib.pyplot as plot
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.lines import Line2D
 
 seqText = 'Enter a sequence (Ex: AABCC)'
 matchText = 'Enter match (Int ≥ 0)'
@@ -257,7 +258,7 @@ class Matrix(list):
                     sequences.append([neighbor] + currentSequence)
 
 ##  Create image of matrix and display it in the UI
-def createPlot(frameRight, matrix, seq1, seq2):
+def createPlot(frameRight, matrix, seq1, seq2, solutions):
     ##  Add extra space to sequences
     seq1 = '-' + seq1
     seq2 = '-' + seq2
@@ -290,6 +291,23 @@ def createPlot(frameRight, matrix, seq1, seq2):
             y = j + 0.5
             chart.text(x, y, matrix[i][j].value, ha='center', va='center', color='blue')
 
+    ##  Create list of cell coordinates
+    coords = []
+    count = 0
+    for solution in solutions:
+        coords.append([])
+        for cell in solution:
+            coords[count].append([cell.i + 0.5, cell.j + 0.5])
+        count += 1
+
+    ##  Draw lines
+    for cells in coords:
+        for i in range(0, len(cells) - 1):
+            xdata = [cells[i][0], cells[i+1][0]]
+            ydata = [cells[i][1], cells[i+1][1]]
+            line = Line2D(xdata, ydata, color='#000000', alpha=0.2)
+            chart.add_line(line)
+    
     ##  Display the plot in the UI
     canvas = FigureCanvasTkAgg(figure, master=frameRight)
     canvas.draw()
@@ -349,11 +367,10 @@ def submit(frameLeft, frameRight, frameBottom, seqEntry1, seqEntry2, match, mism
         ##  Run the algorithm
         matrix = Matrix(seqEntry1.get(), seqEntry2.get(), int(gap.get()))
         matrix.fill(int(match.get()), int(mismatch.get()))
-        solutions = matrix.traceBack()
 
         ##  Display the output
-        createPlot(frameRight, matrix, seqEntry1.get(), seqEntry2.get())
-        paths = formatOuput(solutions)
+        createPlot(frameRight, matrix, seqEntry1.get(), seqEntry2.get(), matrix.traceBack())
+        paths = formatOuput(matrix.traceBack())
         showInListBox(frameBottom, paths)
 
 if __name__ == '__main__':
