@@ -10,12 +10,14 @@ mismatchText = 'Enter mismatch (Int ≤ 0)'
 gapText = 'Enter gap (Int ≤ 0)'
 allowedStrings = [seqText, matchText, mismatchText, gapText]
 errorLbl = None
+listbox = None
 
 def main():
     window = Tk()
-    window.geometry("520x320")
+    window.geometry("520x480")
     window.title("Global Sequence Alignment")
     window.grid_rowconfigure(0, weight=1)
+    window.grid_rowconfigure(1, weight=10)
 
     ##  Create frames
     frameLeft = Frame(window)
@@ -25,6 +27,9 @@ def main():
     frameMid.rowconfigure(0, weight=1)
     frameRight = Frame(window)
     frameRight.grid(row=0, column=2, sticky=NS)
+    frameBottom = Frame(window)
+    frameBottom.grid(row=1, column=0, columnspan=3, sticky=NSEW)
+    frameBottom.rowconfigure(1, weight=10)
 
     ##  Entry for the first sequence
     seqEntry1 = Entry(frameLeft, fg='light grey', relief=FLAT, width=26)
@@ -63,7 +68,7 @@ def main():
 
     ##  Submit button
     submitBtn = Button(frameLeft, text='Submit', cursor='hand2')
-    submitBtn.config(command=partial(submit, frameLeft, frameRight, seqEntry1, seqEntry2, match, mismatch, gap))
+    submitBtn.config(command=partial(submit, frameLeft, frameRight, frameBottom, seqEntry1, seqEntry2, match, mismatch, gap))
     submitBtn.grid(row=6, column=0, pady=(5,0), padx=(10,10))
 
     ##  Separator
@@ -151,7 +156,6 @@ class Cell:
         return "Cell({}, {}, {}, {})".format(self.value, self.pointsTo, self.i, self.j)
 
 class Matrix(list):
-
     ##  Initialize the first row and column of the matrix
     def __init__(self, seq1, seq2, gap):
 
@@ -292,37 +296,65 @@ def createPlot(frameRight, matrix, seq1, seq2):
     canvas.get_tk_widget().grid(row=0, column=2, padx=(10,10), pady=(10,0))
     canvas.get_tk_widget().config(width=300, height=300)
 
-##  XXX: Temporary. Delete this.
-def printSolution(matrix, solution):
-    for x in solution:
-        try:
-            seq1Char = matrix.seq1[x.i - 1]
-        except IndexError:
-            seq1Char = None
+##  Format the paths for the listbox
+def formatOuput(solutions):
+    arr = ['Optimal Alignments: ']
 
-        try:
-            seq2Char = matrix.seq2[x.i - 1]
-        except IndexError:
-            seq2Char = None
+    for solution in solutions:
+        string = ''
+        
+        for x in solution:
+            string += '(' + str(x.i) + ', ' + str(x.j) + ') -> '
+            
+        string = string[:-4]
+        if len(string) > 100:
+            strings = [string[i:i+100] for i in range(0, len(string), 100)]
+            for i in strings:
+                arr.append(i)
+        else:
+            arr.append(string)
+            
+        arr.append('With an alignment score of .')
+        arr.append('')
+        
+    return arr
 
-        print(seq1Char, seq2Char, 'at', (x.i, x.j))
+##  Display the paths in the listbox
+def showInListBox(frameBottom, paths):
+    global listbox
+
+    ##  Create listbox if it doesn't exist
+    if listbox == None:
+        listbox = Listbox(frameBottom, relief=FLAT, width=80, height=8)
+        scrollbar = Scrollbar(frameBottom, orient=VERTICAL)
+        listbox.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=listbox.yview)
+        listbox.grid(row=0, column=0, padx=(18,10), pady=(18,10))
+        scrollbar.grid(row=0, column=0, padx=(18,10), pady=(18,10), sticky=E+NS)
+    ##  If it does exist, remove current elements
+    else:
+        listbox.delete(0, END)
+
+    ##  Put paths in listbox
+    for i in paths:
+        listbox.insert(END, i)
 
 ##  Submit input and run the algorithm
-def submit(frameLeft, frameRight, seqEntry1, seqEntry2, match, mismatch, gap):
+def submit(frameLeft, frameRight, frameBottom, seqEntry1, seqEntry2, match, mismatch, gap):
     ##  Check user input
     valid, err = checkEntries(seqEntry1, seqEntry2, match, mismatch, gap)
     displayError(frameLeft, valid, err)
 
     if valid == True:
-        ##  Initialize and fill the matrix
+        ##  Run the algorithm
         matrix = Matrix(seqEntry1.get(), seqEntry2.get(), int(gap.get()))
         matrix.fill(int(match.get()), int(mismatch.get()))
-        createPlot(frameRight, matrix, seqEntry1.get(), seqEntry2.get())
+        solutions = matrix.traceBack()
 
-    ## XXX: Delete this
-    for solution in matrix.traceBack():
-        printSolution(matrix, solution)
-        print()
+        ##  Display the output
+        createPlot(frameRight, matrix, seqEntry1.get(), seqEntry2.get())
+        paths = formatOuput(solutions)
+        showInListBox(frameBottom, paths)
 
 if __name__ == '__main__':
     main()
