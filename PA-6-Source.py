@@ -259,6 +259,8 @@ class Matrix(list):
 
 ##  Create image of matrix and display it in the UI
 def createPlot(frameRight, matrix, seq1, seq2, solutions):
+    plot.close('all')
+    
     ##  Add extra space to sequences
     seq1 = '-' + seq1
     seq2 = '-' + seq2
@@ -320,9 +322,11 @@ def formatOuput(solutions):
 
     for solution in solutions:
         string = ''
-        
+
+        score = 0
         for x in solution:
             string += '(' + str(x.i) + ', ' + str(x.j) + ') -> '
+            score = x.value
             
         string = string[:-4]
         if len(string) > 100:
@@ -332,7 +336,7 @@ def formatOuput(solutions):
         else:
             arr.append(string)
             
-        arr.append('With an alignment score of .')
+        arr.append('With an alignment score of %s.' % score)
         arr.append('')
         
     return arr
